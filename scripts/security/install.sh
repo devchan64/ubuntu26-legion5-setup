@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # file: scripts/security/install.sh
-# Security toolchain install (Ubuntu 24.04)
+# Security toolchain install (Ubuntu 26.04)
 # - clamav / clamav-freshclam: daemon-based updates (no manual freshclam)
 # - rkhunter, lynis
 # Policy: no fallbacks, fail-fast

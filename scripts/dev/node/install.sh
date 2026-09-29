@@ -4,7 +4,7 @@
 # /** Domain: Contract: Fail-Fast: SideEffect: */
 # - Domain: NVM 기반으로 Node.js 툴체인을 설치하고 corepack(pnpm/yarn)을 활성화한다.
 # - Contract:
-#   - Ubuntu(noble) 사용자 환경에서 동작(다른 배포판은 즉시 실패)
+#   - Ubuntu(resolute) 사용자 환경에서 동작(다른 배포판은 즉시 실패)
 #   - 패키지 설치(apt)는 여기서 하지 않는다(SSOT: scripts/sys/bootstrap.sh)
 #   - 네트워크 필요(github raw 접근)
 #   - root로 실행 금지(NVM은 유저 홈에 설치)

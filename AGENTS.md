@@ -6,7 +6,7 @@ Use the root `AGENTS.md` as the shared instruction source for VS Code and Codex-
 
 ## 1) Goal
 
-Reproduce Ubuntu 24.04 LTS (noble, GNOME on Xorg) and 26.04 LTS (resolute, GNOME on Wayland) development environments with bash scripts.
+Reproduce the Ubuntu 26.04 LTS (resolute, GNOME on Wayland) development environment with bash scripts. Ubuntu 24.04 compatibility is not supported.
 
 Core principles:
 - fail-fast, no fallback
@@ -36,7 +36,7 @@ Important environment variables:
 - Privileged work must use explicit sudo only for commands that require elevated privileges, and let sudo prompt for authentication at that point
 
 Resume / reboot barrier:
-- Resume state: `~/.local/state/ubuntu26-legion5-setup/resume.<scope>.done`
+- Resume state: `~/.local/state/ubuntu26-legion5-setup/resume.<scope>.ubuntu-26.04.done`
 - Reboot barrier state: `~/.local/state/ubuntu26-legion5-setup/reboot.required`
 - Steps that require reboot must stop via `require_reboot_or_throw`
 - If a reboot barrier exists, later steps must not continue
@@ -44,7 +44,7 @@ Resume / reboot barrier:
 
 ## 4) Domain Notes
 
-- `sys`: 버전별 Xorg/Wayland 세션 및 재부팅 경계를 준수한다. xrandr 자동 배치는 폐기하며 화면 배치는 GNOME 설정에서 관리한다.
+- `sys`: Wayland 세션 및 재부팅 경계를 준수한다. xrandr 자동 배치는 폐기하며 화면 배치는 GNOME 설정에서 관리한다.
 - `codex`: Codex CLI와 Codex Desktop을 설치한다
 - `media`: standardize on ai-virtual-cam (`scripts/media/camera`, Linux v4l2loopback path, video+audio integrated, OBS-independent)
 - `ml`: includes CUDA/TensorRT and TensorFlow utilities

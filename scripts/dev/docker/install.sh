@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # file: scripts/dev/docker/install.sh
-# Ubuntu 24.04 전용 Docker Engine + Buildx/Compose 설치 (NVIDIA Toolkit 분리)
+# Ubuntu 26.04 전용 Docker Engine + Buildx/Compose 설치 (NVIDIA Toolkit 분리)
 # 정책: 폴백 없음, 실패 즉시 중단
 set -Eeuo pipefail
 set -o errtrace

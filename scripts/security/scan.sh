@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # file: scripts/security/scan.sh
-# Security scan runner (Ubuntu 24.04)
+# Security scan runner (Ubuntu 26.04)
 # - ClamAV: scan targets (default: sudo user's home), report infected only
 # - rkhunter: rootkit check (non-interactive)
 # - lynis: system audit (quick)

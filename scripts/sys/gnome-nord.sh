@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # file: scripts/sys/gnome-nord.sh
-# GNOME Nord 테마 + 배경 적용 (Xorg 세션 필요)
+# GNOME Nord 테마 + 배경 적용 (Wayland 세션 필요)
 # Domain:
-#   - gsettings 적용은 반드시 '데스크탑 사용자 + 활성 Xorg(x11) 세션' 컨텍스트에서 실행해야 한다.
+#   - gsettings 적용은 반드시 '데스크탑 사용자 + 활성 Wayland 세션' 컨텍스트에서 실행해야 한다.
 # Contract:
 #   - root에서 실행하고, --user <desktopUser> 를 반드시 받는다.
 #   - DISPLAY/XAUTHORITY/DBUS는 scripts/sys/_desktop-session-env.sh(SSOT)에서 추출한다.
@@ -44,8 +44,6 @@ gnome_nord_main() {
     "LEGION_SETUP_ROOT=${LEGION_SETUP_ROOT}"
     "XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR}"
     "DBUS_SESSION_BUS_ADDRESS=${DBUS_SESSION_BUS_ADDRESS}"
-    "DISPLAY=${DISPLAY}"
-    "XAUTHORITY=${XAUTHORITY}"
     "XDG_SESSION_TYPE=${XDG_SESSION_TYPE}"
   )
 

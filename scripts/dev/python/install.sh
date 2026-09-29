@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # file: scripts/dev/python/install.sh
-# Python toolchain install for Ubuntu 24.04
+# Python toolchain install for Ubuntu 26.04
 # - Installs python3, python3-venv, python3-pip
 # Policy: no fallbacks, exit on error
 set -Eeuo pipefail

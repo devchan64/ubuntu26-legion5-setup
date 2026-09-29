@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # file: scripts/ops/monitors-install.sh
-# Monitoring toolchain bundle (Ubuntu 24.04)
+# Monitoring toolchain bundle (Ubuntu 26.04)
 # Policy: no fallbacks, fail-fast
 set -Eeuo pipefail
 set -o errtrace

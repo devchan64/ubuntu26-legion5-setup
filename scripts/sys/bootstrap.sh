@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # file: scripts/sys/bootstrap.sh
-# Ubuntu 24.04(noble) 공통 부트스트랩 (비대화형, 폴백 없음)
+# Ubuntu 26.04(resolute) 공통 부트스트랩 (비대화형, 폴백 없음)
 #
 # /** Domain: Contract: Fail-Fast: SideEffect: */
 # - Domain: sys 도메인 공통 전제(apt 가능, 기본 패키지, universe enable)를 만족시키는 부트스트랩 단계
-# - Contract: Ubuntu 24.04(noble)만 지원, 일반 사용자 실행 + privileged 명령 단위 sudo, bash + strict mode
+# - Contract: Ubuntu 26.04(resolute)만 지원, 일반 사용자 실행 + privileged 명령 단위 sudo, bash + strict mode
 # - Fail-Fast: 전제조건/명령 실패 시 즉시 err(throw)
 # - SideEffect: apt index 갱신, 패키지 설치, apt repo(universe) 활성화
 set -Eeuo pipefail

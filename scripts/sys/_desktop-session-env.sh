@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # file: scripts/sys/_desktop-session-env.sh
-# 버전별 GNOME 세션에서 gsettings를 실행하기 위한 환경 추출 유틸
+# GNOME Wayland 세션에서 gsettings를 실행하기 위한 환경 추출 유틸
 # 정책:
 #   - Fail-Fast: 조건 불충족 시 즉시 err
 #   - SSOT: 세션/ENV 해석 로직은 여기 한 곳에만 둔다.
@@ -16,8 +16,7 @@ _desktop_session_env_exports_or_throw() {
   # shellcheck disable=SC1090
   source "${root_dir}/lib/common.sh"
   require_supported_ubuntu_or_throw
-  local expected_type=x11
-  [[ "${VERSION_ID}" != 26.04 ]] || expected_type=wayland
+  local expected_type=wayland
 
   # -------------------------------
   # Contract: privileged 명령은 sudo 인증 후 실행
@@ -29,15 +28,12 @@ _desktop_session_env_exports_or_throw() {
   id -u "${desk_user}" >/dev/null 2>&1 || err "user not found: ${desk_user}"
 
   must_cmd_or_throw loginctl
-  must_cmd_or_throw pgrep
-  must_cmd_or_throw awk
-  must_cmd_or_throw tr
 
   local desk_uid=""
   desk_uid="$(id -u "${desk_user}")" || err "failed to resolve uid: ${desk_user}"
 
   # -------------------------------
-  # Contract: active Xorg session
+  # Contract: 활성 Wayland 세션
   # -------------------------------
   local session_id=""
   local session_type=""
@@ -57,55 +53,6 @@ _desktop_session_env_exports_or_throw() {
   done < <(loginctl list-sessions --no-legend 2>/dev/null || true)
 
   [[ -n "${session_id}" ]] || err "활성 ${expected_type} 세션이 없습니다. 데스크톱에 로그인하세요."
-  if [[ "${expected_type}" == wayland ]]; then
-    [[ -S "/run/user/${desk_uid}/bus" ]] || err "사용자 DBus 소켓이 없습니다."
-    printf 'export %s=%q\n' XDG_RUNTIME_DIR "/run/user/${desk_uid}" DBUS_SESSION_BUS_ADDRESS "unix:path=/run/user/${desk_uid}/bus" XDG_SESSION_TYPE wayland DISPLAY "" XAUTHORITY ""
-    return
-  fi
-
-  # -------------------------------
-  # DISPLAY/XAUTHORITY: extract from real GUI process environ (no normalization except SSOT fallback)
-  # -------------------------------
-  local pid=""
-  pid="$(pgrep -u "${desk_user}" -n gnome-shell 2>/dev/null || true)"
-  if [[ -z "${pid}" ]]; then
-    pid="$(pgrep -u "${desk_user}" -n Xorg 2>/dev/null || true)"
-  fi
-  [[ -n "${pid}" ]] || err "GUI process not found: user=${desk_user} (gnome-shell/Xorg)"
-
-  local env_file="/proc/${pid}/environ"
-  [[ -r "${env_file}" ]] || err "cannot read environ: ${env_file} (pid=${pid})"
-
-  local session_display=""
-  session_display="$(tr '\0' '\n' < "${env_file}" | awk -F= '$1=="DISPLAY"{print $2; exit}' || true)"
-  [[ -n "${session_display}" ]] || err "DISPLAY not found in environ: user=${desk_user} pid=${pid}"
-
-  local xauth_file=""
-  xauth_file="$(tr '\0' '\n' < "${env_file}" | awk -F= '$1=="XAUTHORITY"{print $2; exit}' || true)"
-  if [[ -n "${xauth_file}" && -e "${xauth_file}" ]]; then
-    : # ok
-  else
-    # Contract: we do NOT attempt multiple fallbacks; single SSOT fallback only
-    local cand="/run/user/${desk_uid}/gdm/Xauthority"
-    [[ -e "${cand}" ]] || err "XAUTHORITY not found (hint: ${cand}) user=${desk_user} pid=${pid}"
-    xauth_file="${cand}"
-  fi
-
-  # -------------------------------
-  # DBus / runtime
-  # -------------------------------
-  local runtime_dir="/run/user/${desk_uid}"
-  [[ -d "${runtime_dir}" ]] || err "XDG_RUNTIME_DIR not found: ${runtime_dir}"
-
-  local bus_path="${runtime_dir}/bus"
-  [[ -S "${bus_path}" || -e "${bus_path}" ]] || err "DBus session bus not found: ${bus_path}"
-
-  # -------------------------------
-  # Output: eval-able exports (explicit SideEffect in caller)
-  # -------------------------------
-  printf 'export %s=%q\n' "XDG_RUNTIME_DIR" "${runtime_dir}"
-  printf 'export %s=%q\n' "DBUS_SESSION_BUS_ADDRESS" "unix:path=${bus_path}"
-  printf 'export %s=%q\n' "DISPLAY" "${session_display}"
-  printf 'export %s=%q\n' "XAUTHORITY" "${xauth_file}"
-  printf 'export %s=%q\n' "XDG_SESSION_TYPE" "x11"
+  [[ -S "/run/user/${desk_uid}/bus" ]] || err "사용자 DBus 소켓이 없습니다."
+  printf 'export %s=%q\n' XDG_RUNTIME_DIR "/run/user/${desk_uid}" DBUS_SESSION_BUS_ADDRESS "unix:path=/run/user/${desk_uid}/bus" XDG_SESSION_TYPE wayland
 }

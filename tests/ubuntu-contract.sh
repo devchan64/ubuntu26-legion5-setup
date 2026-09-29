@@ -18,17 +18,12 @@ source() {
     builtin source "$@"
   fi
 }
-TEST_ID=ubuntu TEST_VERSION=24.04 TEST_CODENAME=noble
-require_supported_ubuntu_or_throw
-old_state="$(resume_file_for_scope_or_throw cmd:sys)"
+TEST_ID=ubuntu TEST_VERSION=26.04 TEST_CODENAME=resolute
 [[ "${PROJECT_STATE_DIR}" == "${XDG_STATE_HOME}/ubuntu26-legion5-setup" ]]
-[[ "${old_state}" == */resume.cmd:sys.done ]]
-TEST_VERSION=26.04 TEST_CODENAME=resolute
 require_supported_ubuntu_or_throw
 new_state="$(resume_file_for_scope_or_throw cmd:sys)"
 [[ "${new_state}" == */resume.cmd:sys.ubuntu-26.04.done ]]
-[[ "${old_state}" != "${new_state}" ]]
-for pair in 26.04:noble 24.04:resolute 25.10:questing; do
+for pair in 24.04:noble 26.04:noble 24.04:resolute 25.10:questing; do
   TEST_VERSION="${pair%%:*}" TEST_CODENAME="${pair#*:}"
   if (require_supported_ubuntu_or_throw) 2>/dev/null; then
     echo "오류: 지원하지 않는 버전이 허용됐습니다: ${pair}" >&2
@@ -50,16 +45,10 @@ confirm_or_skip() { return 0; }
 ensure_sudo_auth_or_throw() { return 0; }
 resume_step() { shift 3; "$@"; }
 must_run_or_throw() { printf '%s\n' "$1"; }
-for TEST_VERSION in 24.04 26.04; do
-  result="$(builtin source "${LEGION_SETUP_ROOT}/scripts/cmd/sys.sh")"
-  if [[ "${TEST_VERSION}" == 26.04 ]]; then
-    [[ "${result}" == *scripts/sys/wayland-setup.sh* ]]
-    [[ "${result}" != *scripts/sys/xorg-ensure.sh* ]]
-  else
-    [[ "${result}" == *scripts/sys/xorg-ensure.sh* ]]
-    [[ "${result}" != *scripts/sys/wayland-setup.sh* ]]
-  fi
-  [[ "${result}" == *scripts/sys/nvidia-stack.sh* ]]
-  [[ "${result}" != *legion-hdmi* ]]
-done
-echo "버전별 sys 단계 및 배치 폐기 검증 통과"
+TEST_VERSION=26.04
+result="$(builtin source "${LEGION_SETUP_ROOT}/scripts/cmd/sys.sh")"
+[[ "${result}" == *scripts/sys/wayland-setup.sh* ]]
+[[ "${result}" != *scripts/sys/xorg-ensure.sh* ]]
+[[ "${result}" == *scripts/sys/nvidia-stack.sh* ]]
+[[ "${result}" != *legion-hdmi* ]]
+echo "26.04 전용 sys 단계 검증 통과"

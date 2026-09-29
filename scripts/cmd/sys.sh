@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # file: scripts/cmd/sys.sh
-# System bootstrap for Ubuntu 24.04 (Xorg/GNOME tweaks)
+# Ubuntu 26.04 GNOME Wayland 시스템 설정
 # 정책:
 #   - 동의는 저장하지 않음. 실행 시마다 "전체 동의" 1회만 질의
 #   - --yes 이면 프롬프트 없이 진행
@@ -41,15 +41,9 @@ sys_main() {
     resume_scope="${RESUME_SCOPE_KEY}"
   fi
 
-  # ① Xorg ensure
-  if [[ "${VERSION_ID}" == 24.04 ]]; then
-    resume_step "${resume_scope}" "sys:xorg:ensure" \
-    -- \
-    must_run_or_throw "scripts/sys/xorg-ensure.sh"
-  else
-    resume_step "${resume_scope}" "sys:wayland:ensure" \
-      -- must_run_or_throw "scripts/sys/wayland-setup.sh"
-  fi
+  # ① Wayland 설정
+  resume_step "${resume_scope}" "sys:wayland:ensure" \
+    -- must_run_or_throw "scripts/sys/wayland-setup.sh"
 
   # ② GNOME basic
   resume_step "${resume_scope}" "sys:gnome:basic" \

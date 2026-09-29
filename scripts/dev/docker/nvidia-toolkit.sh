@@ -5,7 +5,7 @@
 # - Domain: Docker에서 NVIDIA GPU 런타임(nvidia-container-toolkit)을 설치/활성화한다.
 # - Contract:
 #   - apt/daemon 설정 명령은 sudo 인증 후 실행
-#   - Ubuntu 24.04(noble) 기준. 다른 배포판/버전이면 즉시 실패(폴백 없음)
+#   - Ubuntu 26.04(resolute) 기준. 다른 배포판/버전이면 즉시 실패(폴백 없음)
 #   - Docker 엔진이 이미 설치되어 있어야 한다(SSOT: scripts/dev/docker/install.sh)
 # - Fail-Fast: 전제조건 불충족/명령 부재/리포 등록 실패 시 즉시 종료
 # - SideEffect: apt repo 추가, apt install, docker daemon 설정 변경, docker 서비스 재시작
@@ -28,7 +28,7 @@ done
 command -v docker >/dev/null 2>&1 || { echo "[ERR ] docker not found. SSOT: scripts/dev/docker/install.sh 를 먼저 실행하세요." >&2; exit 1; }
 
 # -------------------------------
-# Contract: Ubuntu 24.04 (noble)
+# Contract: Ubuntu 26.04 (resolute)
 # -------------------------------
 require_supported_ubuntu_or_throw
 

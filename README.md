@@ -1,7 +1,7 @@
 # Ubuntu 26 Legion5 Setup
 
 Ubuntu 26.04 대응 작업을 [ubuntu24-legion5-setup](https://github.com/devchan64/ubuntu24-legion5-setup)에서 분리한 독립 저장소입니다.
-기존 24.04 호환 경로는 유지하며, 상태 파일은 `~/.local/state/ubuntu26-legion5-setup/`에 별도로 저장합니다.
+26.04 전용이며, 상태 파일은 `~/.local/state/ubuntu26-legion5-setup/`에 별도로 저장합니다.
 
 ```bash
 git clone https://github.com/devchan64/ubuntu26-legion5-setup.git
@@ -9,7 +9,7 @@ cd ubuntu26-legion5-setup
 ./scripts/install-all.sh help
 ```
 
-Ubuntu **24.04 LTS (noble, Xorg) / 26.04 LTS (resolute, Wayland)** 환경에서
+Ubuntu **26.04 LTS (resolute, Wayland)** 환경에서
 **개발 / Codex / AI / 미디어(ai-virtual-cam) / 네트워크 / 운영 / 보안** 설정을
 **Fail-Fast · 멱등(resumable) · 무폴백** 원칙으로 자동화합니다.
 
@@ -28,8 +28,8 @@ Ubuntu **24.04 LTS (noble, Xorg) / 26.04 LTS (resolute, Wayland)** 환경에서
 
 ## 대상 환경 (Reference)
 
-- **OS**: Ubuntu 24.04 LTS (`noble`) 또는 26.04 LTS (`resolute`)
-- **세션**: 24.04는 Xorg, 26.04는 Wayland
+- **OS**: Ubuntu 26.04 LTS (`resolute`) 전용
+- **세션**: Wayland
 - **검증 범위**: 26.04 분기와 Bash 정적 검증. 26.04 실기기 전체 설치 검증은 별도 필요
 - 26.04에서는 CUDA를 Ubuntu 공식 `cuda-toolkit`으로 설치합니다. 24.04 전용 CUDA 로컬 저장소 변수는 사용할 수 없습니다.
 - 26.04 실행 재개 기록은 `.ubuntu-26.04` 접미사로 분리합니다. 기존 상태 디렉터리는 유지합니다.
@@ -178,7 +178,7 @@ dev → sys → net → ops → security → media → ml
 
 **포함 예시**
 
-- 24.04 Xorg / 26.04 Wayland 세션 준비
+- 26.04 Wayland 세션 준비
 - GNOME 튜닝
 - NVIDIA 드라이버 설치
 - 커널/디스플레이 스택 설정
@@ -319,7 +319,7 @@ for s in /sys/class/drm/*/status; do printf "%s=%s\n" "$s" "$(cat "$s")"; done
 - 상태 파일:
 
 ```
-~/.local/state/ubuntu26-legion5-setup/resume.<scope>.done
+~/.local/state/ubuntu26-legion5-setup/resume.<scope>.ubuntu-26.04.done
 ```
 
 - 완료된 step은 자동 skip

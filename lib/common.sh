@@ -117,11 +117,8 @@ require_reboot_or_throw() {
 # ─────────────────────────────────────────────────────────────
 resume_file_for_scope_or_throw() {
   local scope="${1:?scope required}"
-  # OS 전환 후 이전 버전의 완료 상태로 설치를 건너뛰지 않는다.
-  local ID VERSION_ID VERSION_CODENAME
-  source /etc/os-release
-  [[ "${VERSION_ID:-}" != 26.04 ]] || scope="${scope}.ubuntu-26.04"
-  echo "${PROJECT_STATE_DIR}/resume.${scope}.done"
+  # 이미 배포된 26.04 완료 기록의 경로를 유지한다.
+  echo "${PROJECT_STATE_DIR}/resume.${scope}.ubuntu-26.04.done"
 }
 
 resume_reset_scope() {
@@ -336,7 +333,7 @@ require_supported_ubuntu_or_throw() {
 
   [[ "${ID:-}" == "ubuntu" ]] || err "unsupported distro: ID=${ID:-unknown} (required: ubuntu)"
   case "${VERSION_ID:-}:${VERSION_CODENAME:-}" in
-    24.04:noble|26.04:resolute) ;;
-    *) err "지원하지 않는 Ubuntu 버전: ${VERSION_ID:-unknown}/${VERSION_CODENAME:-unknown} (24.04/noble 또는 26.04/resolute 필요)" ;;
+    26.04:resolute) ;;
+    *) err "지원하지 않는 Ubuntu 버전: ${VERSION_ID:-unknown}/${VERSION_CODENAME:-unknown} (26.04/resolute 필요)" ;;
   esac
 }

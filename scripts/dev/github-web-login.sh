@@ -7,7 +7,7 @@
 #   - dev 도메인에서 GitHub 인증(gh)과 git credential helper를 설정한다.
 #   - git identity(user.name/user.email)는 "입력 기반"으로만 설정한다(자동 추정 금지).
 # Contract:
-#   - Ubuntu 24.04 + network 필요
+#   - Ubuntu 26.04 + network 필요
 #   - root 직접 실행 금지(사용자 컨텍스트에서 실행; apt는 sudo 사용)
 #   - TTY 필요(입력/장치코드 진행)
 # Fail-Fast:

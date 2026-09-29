@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # file: scripts/dev/editors/install-vscode.sh
-# Visual Studio Code install via Microsoft repository (Ubuntu 24.04)
+# Visual Studio Code install via Microsoft repository (Ubuntu 26.04)
 # Policy: no fallbacks, exit on error
 set -Eeuo pipefail
 set -o errtrace
