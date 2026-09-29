@@ -36,8 +36,8 @@ Important environment variables:
 - Privileged work must use explicit sudo only for commands that require elevated privileges, and let sudo prompt for authentication at that point
 
 Resume / reboot barrier:
-- Resume state: `~/.local/state/ubuntu24-legion5-setup/resume.<scope>.done`
-- Reboot barrier state: `~/.local/state/ubuntu24-legion5-setup/reboot.required`
+- Resume state: `~/.local/state/ubuntu26-legion5-setup/resume.<scope>.done`
+- Reboot barrier state: `~/.local/state/ubuntu26-legion5-setup/reboot.required`
 - Steps that require reboot must stop via `require_reboot_or_throw`
 - If a reboot barrier exists, later steps must not continue
 - Changing a `stepKey` is a breaking change

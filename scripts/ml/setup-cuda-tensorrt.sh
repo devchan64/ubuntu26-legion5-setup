@@ -102,7 +102,7 @@ ml_cuda_tensorrt_config_defaults() {
   export NEEDRESTART_MODE=a
 
   # Download dir (resume) — avoid $HOME/Downloads under sudo/root
-  local dl_root="${PROJECT_STATE_DIR:-${XDG_STATE_HOME:-${HOME}/.local/state}/ubuntu24-legion5-setup}/downloads"
+  local dl_root="${PROJECT_STATE_DIR:-${XDG_STATE_HOME:-${HOME}/.local/state}/ubuntu26-legion5-setup}/downloads"
   DOWNLOAD_DIR="${DOWNLOAD_DIR:-${dl_root}/cuda}"
   mkdir -p "${DOWNLOAD_DIR}"
 }

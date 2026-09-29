@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # file: lib/common.sh
-# Common utilities for ubuntu24-legion5-setup
+# Common utilities for ubuntu26-legion5-setup
 # 원칙: 폴백 없음, 에러 즉시 종료
 set -Eeuo pipefail
 set -o errtrace
@@ -50,7 +50,7 @@ ensure_state_path_writable_or_throw() {
 init_project_state_dir_or_throw() {
   local xdg_state_home="${XDG_STATE_HOME:-${HOME}/.local/state}"
   [[ -n "${xdg_state_home}" ]] || err "XDG_STATE_HOME resolved empty"
-  PROJECT_STATE_DIR="${xdg_state_home}/ubuntu24-legion5-setup"
+  PROJECT_STATE_DIR="${xdg_state_home}/ubuntu26-legion5-setup"
   mkdir -p "${PROJECT_STATE_DIR}"
 }
 

@@ -1,4 +1,13 @@
-# Ubuntu 24 Legion5 Setup
+# Ubuntu 26 Legion5 Setup
+
+Ubuntu 26.04 대응 작업을 [ubuntu24-legion5-setup](https://github.com/devchan64/ubuntu24-legion5-setup)에서 분리한 독립 저장소입니다.
+기존 24.04 호환 경로는 유지하며, 상태 파일은 `~/.local/state/ubuntu26-legion5-setup/`에 별도로 저장합니다.
+
+```bash
+git clone https://github.com/devchan64/ubuntu26-legion5-setup.git
+cd ubuntu26-legion5-setup
+./scripts/install-all.sh help
+```
 
 Ubuntu **24.04 LTS (noble, Xorg) / 26.04 LTS (resolute, Wayland)** 환경에서
 **개발 / Codex / AI / 미디어(ai-virtual-cam) / 네트워크 / 운영 / 보안** 설정을
@@ -310,7 +319,7 @@ for s in /sys/class/drm/*/status; do printf "%s=%s\n" "$s" "$(cat "$s")"; done
 - 상태 파일:
 
 ```
-~/.local/state/ubuntu24-legion5-setup/resume.<scope>.done
+~/.local/state/ubuntu26-legion5-setup/resume.<scope>.done
 ```
 
 - 완료된 step은 자동 skip

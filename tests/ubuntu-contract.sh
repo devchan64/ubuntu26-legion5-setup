@@ -21,6 +21,7 @@ source() {
 TEST_ID=ubuntu TEST_VERSION=24.04 TEST_CODENAME=noble
 require_supported_ubuntu_or_throw
 old_state="$(resume_file_for_scope_or_throw cmd:sys)"
+[[ "${PROJECT_STATE_DIR}" == "${XDG_STATE_HOME}/ubuntu26-legion5-setup" ]]
 [[ "${old_state}" == */resume.cmd:sys.done ]]
 TEST_VERSION=26.04 TEST_CODENAME=resolute
 require_supported_ubuntu_or_throw
