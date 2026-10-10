@@ -14,6 +14,7 @@ net_main() {
     -- \
     must_run_or_throw "scripts/net/tools-install.sh"
 
+  log "[net] GUI 파일 탐색기: python3 ${root_dir}/scripts/net/file-explorer.py"
   log "[net] done"
 }
 

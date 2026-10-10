@@ -46,6 +46,11 @@ main() {
 
     # Wi-Fi (legacy helper)
     wireless-tools
+
+    # GUI 파일 탐색기 및 SMB/NAS(GVFS) 지원
+    python3-gi
+    gir1.2-gtk-4.0
+    gvfs-backends
   )
 
   log "[net] install packages"
@@ -77,6 +82,7 @@ net_tools_contract_validate_binaries_or_throw() {
   check_cmd iperf3
   check_cmd curl
   check_cmd http
+  check_cmd python3
 }
 
 # ─────────────────────────────────────────────────────────────

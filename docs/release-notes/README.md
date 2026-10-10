@@ -6,6 +6,7 @@
 
 | 날짜 | 제목 | 파일 |
 | --- | --- | --- |
+| 2026-10-10 | SMB/NAS 파일 탐색기 및 일괄 이름 변경 추가 | [2026-10-10-gvfs-file-explorer.md](./2026-10-10-gvfs-file-explorer.md) |
 | 2026-09-29 | Ubuntu 26.04 전용 코드 정리 | [2026-09-29-ubuntu26-only.md](./2026-09-29-ubuntu26-only.md) |
 | 2026-09-29 | Ubuntu 26 전용 저장소 분리 | [2026-09-29-separate-ubuntu26-repository.md](./2026-09-29-separate-ubuntu26-repository.md) |
 | 2026-09-29 | Ubuntu 26.04 대응 및 xrandr 배치 폐기 | [2026-09-29-ubuntu-2604-support.md](./2026-09-29-ubuntu-2604-support.md) |
