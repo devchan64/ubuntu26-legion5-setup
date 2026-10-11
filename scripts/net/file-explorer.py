@@ -9,7 +9,8 @@ import gi
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Gio", "2.0")
-from gi.repository import Gio, Gtk
+gi.require_version("Gdk", "4.0")
+from gi.repository import Gdk, Gio, GLib, Gtk
 
 
 APPLICATION_ID = "com.github.devchan64.Ubuntu26FileExplorer"
@@ -52,9 +53,13 @@ class FileExplorer(Gtk.Application):
         self.delete_button: Gtk.Button | None = None
         self.select_all_button: Gtk.Button | None = None
         self.clear_selection_button: Gtk.Button | None = None
+        self.single_deselect_button: Gtk.Button | None = None
+        self.selection_hint: Gtk.Label | None = None
         self.search_entry: Gtk.SearchEntry | None = None
         self.entries: list[tuple[Gio.File, Gio.FileInfo]] = []
         self.multi_select_enabled = False
+        self.selection_anchor: Gtk.ListBoxRow | None = None
+        self.mount_operations: list[Gio.MountOperation] = []
 
     def do_activate(self) -> None:
         if self.window is None:
@@ -116,41 +121,53 @@ class FileExplorer(Gtk.Application):
         self.location_entry.connect("activate", self._open_location)
         navigation_bar.append(self.location_entry)
 
-        action_bar = Gtk.Box(spacing=6)
-        root.append(action_bar)
+        selection_bar = Gtk.Box(spacing=6)
+        root.append(selection_bar)
 
         selection_mode_button = Gtk.ToggleButton(label="선택 모드")
         selection_mode_button.set_tooltip_text("다중 선택과 일괄 작업을 켜거나 끕니다")
         selection_mode_button.connect("toggled", self._toggle_selection_mode)
-        action_bar.append(selection_mode_button)
+        selection_bar.append(selection_mode_button)
 
-        sort_button = Gtk.Button(label="이름: 오름차순")
-        sort_button.connect("clicked", self._toggle_sort)
-        action_bar.append(sort_button)
-        self.sort_button = sort_button
+        self.selection_hint = Gtk.Label(label="Shift+클릭: 범위 선택 · Ctrl+클릭: 항목 추가/해제", xalign=0)
+        self.selection_hint.add_css_class("dim-label")
+        self.selection_hint.set_visible(False)
+        selection_bar.append(self.selection_hint)
 
         self.rename_button = Gtk.Button(label="선택 항목 이름 변경")
         self.rename_button.set_sensitive(False)
         self.rename_button.connect("clicked", self._show_rename_dialog)
-        action_bar.append(self.rename_button)
+        selection_bar.append(self.rename_button)
 
         self.delete_button = Gtk.Button(label="삭제")
         self.delete_button.set_sensitive(False)
         self.delete_button.connect("clicked", self._confirm_delete_selected)
-        action_bar.append(self.delete_button)
+        selection_bar.append(self.delete_button)
+
+        list_action_bar = Gtk.Box(spacing=6)
+        root.append(list_action_bar)
+
+        sort_button = Gtk.Button(label="이름: 오름차순")
+        sort_button.connect("clicked", self._toggle_sort)
+        list_action_bar.append(sort_button)
+        self.sort_button = sort_button
 
         self.select_all_button = Gtk.Button(label="전체 선택", sensitive=False)
         self.select_all_button.connect("clicked", self._select_all)
-        action_bar.append(self.select_all_button)
+        list_action_bar.append(self.select_all_button)
 
         self.clear_selection_button = Gtk.Button(label="선택 해제", sensitive=False)
         self.clear_selection_button.connect("clicked", self._clear_selection)
-        action_bar.append(self.clear_selection_button)
+        list_action_bar.append(self.clear_selection_button)
+
+        self.single_deselect_button = Gtk.Button(label="단일 선택 해제", sensitive=False)
+        self.single_deselect_button.connect("clicked", self._deselect_single)
+        list_action_bar.append(self.single_deselect_button)
 
         self.search_entry = Gtk.SearchEntry(placeholder_text="현재 폴더 검색")
         self.search_entry.set_hexpand(True)
         self.search_entry.connect("search-changed", self._filter_entries)
-        action_bar.append(self.search_entry)
+        list_action_bar.append(self.search_entry)
 
         scroller = Gtk.ScrolledWindow(vexpand=True)
         root.append(scroller)
@@ -174,6 +191,9 @@ class FileExplorer(Gtk.Application):
         self.file_list.add_css_class("boxed-list")
         self.file_list.connect("row-activated", self._activate_row)
         self.file_list.connect("selected-rows-changed", self._selection_changed)
+        selection_click = Gtk.GestureClick()
+        selection_click.connect("pressed", self._handle_selection_click)
+        self.file_list.add_controller(selection_click)
         list_area.append(self.file_list)
 
         self.status_label = Gtk.Label(xalign=0, wrap=True)
@@ -191,6 +211,9 @@ class FileExplorer(Gtk.Application):
     def _open_file(self, file: Gio.File, add_history: bool) -> None:
         try:
             info = file.query_info("standard::type", Gio.FileQueryInfoFlags.NONE, None)
+            if info.get_file_type() == Gio.FileType.MOUNTABLE:
+                self._mount_and_open(file, add_history)
+                return
             if info.get_file_type() != Gio.FileType.DIRECTORY:
                 self._set_status("폴더만 열 수 있습니다.")
                 return
@@ -201,8 +224,76 @@ class FileExplorer(Gtk.Application):
                 self.history.append(uri)
                 self.history_index += 1
             self._refresh()
+        except GLib.Error as error:
+            if error.matches(Gio.io_error_quark(), Gio.IOErrorEnum.NOT_MOUNTED):
+                self._mount_and_open(file, add_history)
+                return
+            self._set_status(f"위치를 열 수 없습니다: {error}")
         except Exception as error:
             self._set_status(f"위치를 열 수 없습니다: {error}")
+
+    def _mount_and_open(self, file: Gio.File, add_history: bool) -> None:
+        """GVFS 마운트가 필요한 원격 위치에 인증 UI를 연결한다."""
+        assert self.window is not None
+        operation = Gio.MountOperation(parent=self.window)
+        operation.connect("ask-password", self._ask_password)
+        self.mount_operations.append(operation)
+        file.mount_enclosing_volume(
+            Gio.MountMountFlags.NONE,
+            operation,
+            None,
+            self._mount_finished,
+            (file, add_history, operation),
+        )
+
+    def _ask_password(self, operation: Gio.MountOperation, message: str, default_user: str,
+                      default_domain: str, _flags: Gio.AskPasswordFlags) -> None:
+        """SMB 인증 요청을 한국어 자격 증명 창으로 처리한다."""
+        assert self.window is not None
+        dialog = Gtk.Dialog(title="SMB/NAS 인증", transient_for=self.window, modal=True)
+        dialog.add_button("취소", Gtk.ResponseType.CANCEL)
+        dialog.add_button("연결", Gtk.ResponseType.ACCEPT).add_css_class("suggested-action")
+        content = dialog.get_content_area()
+        content.set_spacing(8)
+        content.set_margin_top(12)
+        content.set_margin_bottom(12)
+        content.set_margin_start(12)
+        content.set_margin_end(12)
+        content.append(Gtk.Label(label=message or "SMB/NAS 공유에 인증이 필요합니다.", xalign=0, wrap=True))
+        grid = Gtk.Grid(column_spacing=8, row_spacing=8)
+        content.append(grid)
+        username = Gtk.Entry(text=default_user or "", placeholder_text="사용자명")
+        password = Gtk.PasswordEntry(placeholder_text="암호")
+        domain = Gtk.Entry(text=default_domain or "", placeholder_text="도메인(선택)")
+        for row, (label, field) in enumerate((("사용자명", username), ("암호", password), ("도메인", domain))):
+            grid.attach(Gtk.Label(label=label, xalign=0), 0, row, 1, 1)
+            grid.attach(field, 1, row, 1, 1)
+        dialog.connect("response", self._password_response, operation, username, password, domain)
+        dialog.present()
+
+    def _password_response(self, dialog: Gtk.Dialog, response: int, operation: Gio.MountOperation,
+                           username: Gtk.Entry, password: Gtk.PasswordEntry, domain: Gtk.Entry) -> None:
+        if response == Gtk.ResponseType.ACCEPT:
+            operation.set_username(username.get_text())
+            operation.set_password(password.get_text())
+            operation.set_domain(domain.get_text())
+            operation.set_password_save(Gio.PasswordSave.FOR_SESSION)
+            operation.reply(Gio.MountOperationResult.HANDLED)
+        else:
+            operation.reply(Gio.MountOperationResult.ABORTED)
+        dialog.destroy()
+
+    def _mount_finished(self, source: Gio.File, result: Gio.AsyncResult,
+                        data: tuple[Gio.File, bool, Gio.MountOperation]) -> None:
+        """원격 마운트 결과를 확인한 뒤 요청했던 폴더를 다시 연다."""
+        file, add_history, operation = data
+        try:
+            source.mount_enclosing_volume_finish(result)
+            self._open_file(file, add_history)
+        except Exception as error:
+            self._set_status(f"SMB/NAS 연결에 실패했습니다: {error}")
+        finally:
+            self.mount_operations.remove(operation)
 
     def _refresh(self) -> None:
         assert self.file_list is not None
@@ -231,6 +322,11 @@ class FileExplorer(Gtk.Application):
             self.location_entry.set_text(self.current_file.get_uri())
             self._set_status(f"{len(entries)}개 항목 · 네트워크 탐색에서 NAS와 공유 폴더를 선택하세요.")
             self._update_navigation()
+        except GLib.Error as error:
+            if error.matches(Gio.io_error_quark(), Gio.IOErrorEnum.NOT_MOUNTED):
+                self._mount_and_open(self.current_file, add_history=False)
+                return
+            self._set_status(f"폴더 내용을 읽을 수 없습니다: {error}")
         except Exception as error:
             self._set_status(f"폴더 내용을 읽을 수 없습니다: {error}")
 
@@ -260,6 +356,7 @@ class FileExplorer(Gtk.Application):
     def _render_entries(self) -> None:
         """검색어에 맞는 현재 폴더 항목만 목록에 그린다."""
         assert self.file_list is not None and self.search_entry is not None
+        self.selection_anchor = None
         while (row := self.file_list.get_first_child()) is not None:
             self.file_list.remove(row)
         query = self.search_entry.get_text().strip().casefold()
@@ -279,6 +376,48 @@ class FileExplorer(Gtk.Application):
         assert self.file_list is not None
         self.file_list.unselect_all()
 
+    def _deselect_single(self, *_args: object) -> None:
+        """선택된 항목이 하나일 때 해당 항목만 선택 해제한다."""
+        assert self.file_list is not None
+        rows = self.file_list.get_selected_rows()
+        if len(rows) == 1:
+            self.file_list.unselect_row(rows[0])
+
+    def _handle_selection_click(self, gesture: Gtk.GestureClick, _press_count: int, _x: float, y: float) -> None:
+        """선택 모드의 Shift 범위 선택과 Ctrl 개별 토글을 일관되게 적용한다."""
+        if not self.multi_select_enabled or self.file_list is None:
+            return
+        row = self.file_list.get_row_at_y(int(y))
+        if row is None:
+            return
+        state = gesture.get_current_event_state()
+        shift_pressed = bool(state & Gdk.ModifierType.SHIFT_MASK)
+        control_pressed = bool(state & Gdk.ModifierType.CONTROL_MASK)
+        # 기본 클릭 선택이 완료된 뒤 범위/토글 선택 결과를 덮어쓴다.
+        GLib.idle_add(self._apply_selection_click, row, shift_pressed, control_pressed)
+
+    def _apply_selection_click(self, row: Gtk.ListBoxRow, shift_pressed: bool, control_pressed: bool) -> bool:
+        assert self.file_list is not None
+        if shift_pressed and self.selection_anchor is not None:
+            if not control_pressed:
+                self.file_list.unselect_all()
+            start = min(self.selection_anchor.get_index(), row.get_index())
+            end = max(self.selection_anchor.get_index(), row.get_index())
+            child = self.file_list.get_first_child()
+            while child is not None:
+                if start <= child.get_index() <= end:
+                    self.file_list.select_row(child)
+                child = child.get_next_sibling()
+        elif control_pressed:
+            if row.is_selected():
+                self.file_list.unselect_row(row)
+            else:
+                self.file_list.select_row(row)
+            self.selection_anchor = row
+        else:
+            self.selection_anchor = row
+        return GLib.SOURCE_REMOVE
+
     def _activate_row(self, _list_box: Gtk.ListBox, row: Gtk.ListBoxRow) -> None:
         if row.file.get_uri_scheme() == "network":
             target_uri = row.info.get_attribute_string("standard::target-uri")
@@ -287,7 +426,8 @@ class FileExplorer(Gtk.Application):
             else:
                 self._open_file(row.file, add_history=True)
             return
-        if row.info.get_file_type() == Gio.FileType.DIRECTORY:
+        # SMB 공유는 DIRECTORY 대신 MOUNTABLE 또는 UNKNOWN으로 반환될 수 있다.
+        if row.info.get_file_type() in (Gio.FileType.DIRECTORY, Gio.FileType.MOUNTABLE, Gio.FileType.UNKNOWN):
             self._open_file(row.file, add_history=True)
         else:
             try:
@@ -297,20 +437,28 @@ class FileExplorer(Gtk.Application):
 
     def _selection_changed(self, list_box: Gtk.ListBox) -> None:
         assert self.rename_button is not None and self.delete_button is not None
-        has_selection = self.multi_select_enabled and bool(list_box.get_selected_rows())
+        assert self.clear_selection_button is not None and self.single_deselect_button is not None
+        selected_count = len(list_box.get_selected_rows())
+        has_selection = self.multi_select_enabled and selected_count > 0
         self.rename_button.set_sensitive(has_selection)
         self.delete_button.set_sensitive(has_selection)
+        self.clear_selection_button.set_sensitive(has_selection)
+        self.single_deselect_button.set_sensitive(self.multi_select_enabled and selected_count == 1)
 
     def _toggle_selection_mode(self, button: Gtk.ToggleButton) -> None:
         """선택 모드에서만 다중 선택 및 일괄 작업을 허용한다."""
         assert self.file_list is not None
         assert self.select_all_button is not None and self.clear_selection_button is not None
+        assert self.single_deselect_button is not None and self.selection_hint is not None
         self.multi_select_enabled = button.get_active()
         mode = Gtk.SelectionMode.MULTIPLE if self.multi_select_enabled else Gtk.SelectionMode.SINGLE
         self.file_list.set_selection_mode(mode)
         self.file_list.unselect_all()
+        self.selection_anchor = None
         self.select_all_button.set_sensitive(self.multi_select_enabled)
-        self.clear_selection_button.set_sensitive(self.multi_select_enabled)
+        self.clear_selection_button.set_sensitive(False)
+        self.single_deselect_button.set_sensitive(False)
+        self.selection_hint.set_visible(self.multi_select_enabled)
         self._selection_changed(self.file_list)
 
     def _confirm_delete_selected(self, *_args: object) -> None:
@@ -397,8 +545,9 @@ class FileExplorer(Gtk.Application):
         start = Gtk.SpinButton.new_with_range(1, 999999, 1)
         digits = Gtk.SpinButton.new_with_range(1, 9, 1)
         digits.set_value(3)
+        case_mode = Gtk.DropDown(model=Gtk.StringList.new(["변경 안 함", "대문자", "소문자"]))
         fields = (("접두사", prefix), ("찾기", find), ("바꾸기", replace), ("접미사", suffix),
-                  ("시작 번호", start), ("번호 자릿수", digits))
+                  ("시작 번호", start), ("번호 자릿수", digits), ("대소문자", case_mode))
         for index, (label, field) in enumerate(fields):
             grid.attach(Gtk.Label(label=label, xalign=0), 0, index, 1, 1)
             grid.attach(field, 1, index, 1, 1)
@@ -411,7 +560,7 @@ class FileExplorer(Gtk.Application):
         def refresh_preview(*_ignored: object) -> None:
             plan, skipped, error = self._rename_plan(rows, prefix.get_text(), find.get_text(), replace.get_text(),
                                                      suffix.get_text(), add_number.get_active(), start.get_value_as_int(),
-                                                     digits.get_value_as_int())
+                                                     digits.get_value_as_int(), case_mode.get_selected())
             if error:
                 preview.set_text(f"적용할 수 없습니다: {error}")
                 apply_button.set_sensitive(False)
@@ -426,12 +575,14 @@ class FileExplorer(Gtk.Application):
             field.connect("changed", refresh_preview)
         for field in (add_number, start, digits):
             field.connect("notify::active" if field is add_number else "value-changed", refresh_preview)
+        case_mode.connect("notify::selected", refresh_preview)
         refresh_preview()
-        dialog.connect("response", self._rename_response, rows, prefix, find, replace, suffix, add_number, start, digits)
+        dialog.connect("response", self._rename_response, rows, prefix, find, replace, suffix, add_number, start, digits,
+                       case_mode)
         dialog.present()
 
     def _rename_plan(self, rows: list[Gtk.ListBoxRow], prefix: str, find: str, replace: str, suffix: str,
-                     add_number: bool, start: int, digits: int) -> tuple[list[tuple[Gio.File, str]], list[str], str | None]:
+                     add_number: bool, start: int, digits: int, case_mode: int) -> tuple[list[tuple[Gio.File, str]], list[str], str | None]:
         """이름 변경 대상과 충돌 여부를 먼저 계산한다."""
         plan: list[tuple[Gio.File, str]] = []
         skipped: list[str] = []
@@ -446,6 +597,10 @@ class FileExplorer(Gtk.Application):
             new_stem = prefix + replaced_stem + suffix
             number = f"{start + index:0{digits}d}" if add_number else ""
             new_name = f"{new_stem}{number}{dot}{extension}" if extension else f"{new_stem}{number}"
+            if case_mode == 1:
+                new_name = new_name.upper()
+            elif case_mode == 2:
+                new_name = new_name.lower()
             if not new_name or "/" in new_name or new_name in {".", ".."}:
                 return [], [], f"유효하지 않은 파일 이름: {new_name!r}"
             if new_name in names:
@@ -460,12 +615,13 @@ class FileExplorer(Gtk.Application):
 
     def _rename_response(self, dialog: Gtk.Dialog, response: int, rows: list[Gtk.ListBoxRow], prefix: Gtk.Entry,
                          find: Gtk.Entry, replace: Gtk.Entry, suffix: Gtk.Entry, add_number: Gtk.CheckButton,
-                         start: Gtk.SpinButton, digits: Gtk.SpinButton) -> None:
+                         start: Gtk.SpinButton, digits: Gtk.SpinButton, case_mode: Gtk.DropDown) -> None:
         if response != Gtk.ResponseType.APPLY:
             dialog.destroy()
             return
         plan, skipped, error = self._rename_plan(rows, prefix.get_text(), find.get_text(), replace.get_text(), suffix.get_text(),
-                                                 add_number.get_active(), start.get_value_as_int(), digits.get_value_as_int())
+                                                 add_number.get_active(), start.get_value_as_int(), digits.get_value_as_int(),
+                                                 case_mode.get_selected())
         if error:
             self._set_status(f"이름 변경을 취소했습니다: {error}")
             dialog.destroy()
